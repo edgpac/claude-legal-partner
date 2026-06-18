@@ -113,6 +113,14 @@ export const createReview = createServerFn({ method: "POST" })
       }
     }
 
+    // Cap free reviews at 5 pages / 2,000 words — limits API cost and reduces
+    // incentive to farm free reviews with fake emails.
+    if (plan === "free" && (data.wordCount > 2000 || data.pageCount > 5)) {
+      throw new Error(
+        "UPGRADE_REQUIRED: Free review is limited to 5 pages / 2,000 words. Upgrade to review longer documents.",
+      );
+    }
+
     // 1. Insert document
     const { data: doc, error: docErr } = await supabase
       .from("documents")
