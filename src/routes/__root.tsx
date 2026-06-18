@@ -77,17 +77,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "LegalClaude — AI Contract Review" },
+      { title: "Risky Contract Review — AI Contract Analysis" },
       {
         name: "description",
         content:
-          "Drop a contract. Get a clause-by-clause risk analysis, NDA triage, and plain-English briefing in under a minute.",
+          "Drop a contract. Get a clause-by-clause risk analysis, NDA triage, and plain-English briefing in under a minute. riskycontract.com",
       },
-      { property: "og:title", content: "LegalClaude — AI Contract Review" },
+      { property: "og:title", content: "Risky Contract Review — AI Contract Analysis" },
       {
         property: "og:description",
         content:
-          "Drop a contract. Get a clause-by-clause risk analysis, NDA triage, and plain-English briefing in under a minute.",
+          "Drop a contract. Get a clause-by-clause risk analysis, NDA triage, and plain-English briefing in under a minute. riskycontract.com",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

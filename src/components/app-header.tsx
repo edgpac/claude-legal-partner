@@ -18,11 +18,11 @@ export function AppHeader() {
     <header className="border-b border-border bg-surface/80 backdrop-blur supports-[backdrop-filter]:bg-surface/60 sticky top-0 z-30">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold">
-            L
+          <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
+            RC
           </div>
           <span className="font-semibold tracking-tight">
-            Legal<span className="text-primary">Claude</span>
+            Risky<span className="text-primary">Contract</span>
           </span>
         </Link>
         <nav className="flex items-center gap-1">

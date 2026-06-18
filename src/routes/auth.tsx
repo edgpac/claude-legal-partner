@@ -20,8 +20,8 @@ export const Route = createFileRoute("/auth")({
   },
   head: () => ({
     meta: [
-      { title: "Sign in — LegalClaude" },
-      { name: "description", content: "Sign in to LegalClaude to review contracts with AI." },
+      { title: "Sign in — Risky Contract Review" },
+      { name: "description", content: "Sign in to Risky Contract Review to analyze contracts with AI." },
     ],
   }),
   component: AuthPage,
@@ -81,7 +81,7 @@ function AuthPage() {
               <ScaleIcon className="h-5 w-5" />
             </div>
             <span className="text-lg font-semibold tracking-tight">
-              Legal<span className="text-primary">Claude</span>
+              Risky<span className="text-primary">Contract</span>
             </span>
           </Link>
 

@@ -94,7 +94,7 @@ function HomePage() {
             Drop a contract. Get a clause-by-clause review.
           </h1>
           <p className="mt-3 text-muted-foreground text-base/relaxed">
-            LegalClaude reads your document, flags risky language, and writes a plain-English
+            Risky Contract Review reads your document, flags risky language, and writes a plain-English
             briefing — in under a minute.
           </p>
         </div>
