@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedReviewIdRouteImport } from './routes/_authenticated/review.$id'
+import { Route as AuthenticatedSettingsBillingRouteImport } from './routes/_authenticated/settings/billing'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -39,18 +40,25 @@ const AuthenticatedReviewIdRoute = AuthenticatedReviewIdRouteImport.update({
   path: '/review/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSettingsBillingRoute = AuthenticatedSettingsBillingRouteImport.update({
+  id: '/settings/billing',
+  path: '/settings/billing',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/review/$id': typeof AuthenticatedReviewIdRoute
+  '/settings/billing': typeof AuthenticatedSettingsBillingRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/': typeof AuthenticatedIndexRoute
   '/review/$id': typeof AuthenticatedReviewIdRoute
+  '/settings/billing': typeof AuthenticatedSettingsBillingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +67,13 @@ export interface FileRoutesById {
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/review/$id': typeof AuthenticatedReviewIdRoute
+  '/_authenticated/settings/billing': typeof AuthenticatedSettingsBillingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/history' | '/review/$id'
+  fullPaths: '/' | '/auth' | '/history' | '/review/$id' | '/settings/billing'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/history' | '/' | '/review/$id'
+  to: '/auth' | '/history' | '/' | '/review/$id' | '/settings/billing'
   id:
     | '__root__'
     | '/_authenticated'
@@ -72,6 +81,7 @@ export interface FileRouteTypes {
     | '/_authenticated/history'
     | '/_authenticated/'
     | '/_authenticated/review/$id'
+    | '/_authenticated/settings/billing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,6 +126,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReviewIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/settings/billing': {
+      id: '/_authenticated/settings/billing'
+      path: '/settings/billing'
+      fullPath: '/settings/billing'
+      preLoaderRoute: typeof AuthenticatedSettingsBillingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -123,12 +140,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedReviewIdRoute: typeof AuthenticatedReviewIdRoute
+  AuthenticatedSettingsBillingRoute: typeof AuthenticatedSettingsBillingRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedReviewIdRoute: AuthenticatedReviewIdRoute,
+  AuthenticatedSettingsBillingRoute: AuthenticatedSettingsBillingRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

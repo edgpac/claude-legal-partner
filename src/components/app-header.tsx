@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, FileText, History } from "lucide-react";
+import { LogOut, FileText, History, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { CreditsBadge } from "@/components/credits-badge";
 
 export function AppHeader() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export function AppHeader() {
           </span>
         </Link>
         <nav className="flex items-center gap-1">
+          <CreditsBadge />
           <Link
             to="/"
             activeOptions={{ exact: true }}
@@ -41,6 +43,14 @@ export function AppHeader() {
           >
             <span className="inline-flex items-center gap-1.5">
               <History className="h-4 w-4" /> History
+            </span>
+          </Link>
+          <Link
+            to="/settings/billing"
+            className="px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors data-[status=active]:text-foreground data-[status=active]:bg-accent"
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <CreditCard className="h-4 w-4" /> Billing
             </span>
           </Link>
           <button

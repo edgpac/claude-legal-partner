@@ -73,15 +73,44 @@ export const createReview = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Section 5: Rate limiting — 5 reviews per user per hour.
-    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { count } = await supabase
-      .from("reviews")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", since);
-    if ((count ?? 0) >= 5) {
-      throw new Error("Rate limit: maximum 5 reviews per hour. Please try again later.");
+    // Section 5: Paywall enforcement — always read plan from DB, never trust client.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan, review_credits, subscription_status")
+      .eq("id", userId)
+      .single();
+
+    const plan = (profile?.plan ?? "free") as "free" | "starter" | "pro";
+    const credits = profile?.review_credits ?? 0;
+    const subStatus = profile?.subscription_status;
+
+    if (plan === "free") {
+      const { count: total } = await supabase
+        .from("reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+      if ((total ?? 0) >= 1) {
+        throw new Error("UPGRADE_REQUIRED: You've used your free review. Upgrade to continue.");
+      }
+    } else if (plan === "starter") {
+      if (credits <= 0) {
+        throw new Error("UPGRADE_REQUIRED: No reviews remaining. Buy more or upgrade to Pro.");
+      }
+    } else if (plan === "pro") {
+      if (subStatus === "canceled") {
+        throw new Error("UPGRADE_REQUIRED: Your Pro subscription has ended. Please resubscribe.");
+      }
+      // past_due: allow, 3-day grace period before blocking
+      // Anti-abuse rate limit for Pro: 20 reviews/hour
+      const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { count: hourly } = await supabase
+        .from("reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("created_at", since);
+      if ((hourly ?? 0) >= 20) {
+        throw new Error("Rate limit: maximum 20 reviews per hour. Please try again later.");
+      }
     }
 
     // 1. Insert document
@@ -144,6 +173,14 @@ export const createReview = createServerFn({ method: "POST" })
           result_json: parsed,
         })
         .eq("id", review.id);
+
+      // Decrement Starter credits after a successful review.
+      if (plan === "starter" && credits > 0) {
+        await supabase
+          .from("profiles")
+          .update({ review_credits: credits - 1 })
+          .eq("id", userId);
+      }
 
       return { reviewId: review.id };
     } catch (e) {

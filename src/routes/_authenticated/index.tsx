@@ -7,6 +7,7 @@ import { UploadCloud, FileText, ArrowRight, Loader2, ShieldAlert, CheckCircle2 }
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { RiskBadge } from "@/components/risk-badge";
+import { PricingModal } from "@/components/pricing-modal";
 import { extractDocument } from "@/lib/extract-document";
 import { createReview, listRecentReviews } from "@/lib/review.functions";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,8 @@ function HomePage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<DropState>("idle");
   const [step, setStep] = useState<string>("");
+  const [pricingOpen, setPricingOpen] = useState(false);
+  const [pricingReason, setPricingReason] = useState<string | undefined>();
 
   const recent = useQuery({
     queryKey: ["recent-reviews"],
@@ -68,9 +71,16 @@ function HomePage() {
         navigate({ to: "/review/$id", params: { id: result.reviewId } });
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Something went wrong";
-        toast.error(msg);
-        setState("error");
-        setStep("");
+        if (msg.startsWith("UPGRADE_REQUIRED:")) {
+          setPricingReason(msg.replace("UPGRADE_REQUIRED: ", ""));
+          setPricingOpen(true);
+          setState("idle");
+          setStep("");
+        } else {
+          toast.error(msg);
+          setState("error");
+          setStep("");
+        }
       }
     },
     [create, navigate, router],
@@ -86,6 +96,7 @@ function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
+      <PricingModal open={pricingOpen} onOpenChange={setPricingOpen} reason={pricingReason} />
 
       <main className="mx-auto max-w-5xl px-6 py-12">
         <div className="text-center max-w-2xl mx-auto">
