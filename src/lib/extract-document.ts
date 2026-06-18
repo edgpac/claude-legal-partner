@@ -1,7 +1,6 @@
-/**
- * Client-side document text extraction.
- * Uses pdfjs-dist for PDFs and mammoth for DOCX. Plain text passed through.
- */
+// Section 1: File uploads — validate before extraction; raw file never leaves the browser.
+
+import { validateFile } from "./validate-file";
 
 export type ExtractedDoc = {
   text: string;
@@ -10,6 +9,7 @@ export type ExtractedDoc = {
 };
 
 export async function extractDocument(file: File): Promise<ExtractedDoc> {
+  await validateFile(file); // magic bytes + size + extension — throws on failure
   const name = file.name.toLowerCase();
   if (name.endsWith(".pdf")) return extractPdf(file);
   if (name.endsWith(".docx")) return extractDocx(file);
@@ -35,7 +35,7 @@ async function extractPdf(file: File): Promise<ExtractedDoc> {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
     const text = content.items
-      .map((it) => ("str" in it ? (it as { str: string }).str : ""))
+      .map((it: object) => ("str" in it ? (it as { str: string }).str : ""))
       .join(" ");
     pages.push(text);
   }
