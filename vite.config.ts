@@ -7,8 +7,7 @@ import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   ssr: {
-    // Bundle these into dist/server/ so the Vercel function is self-contained.
-    noExternal: ["@anthropic-ai/sdk", "stripe", "@supabase/supabase-js", "zod"],
+    noExternal: true, // bundle all npm deps so the Vercel function is self-contained
   },
   plugins: [
     tanstackStart({ server: { entry: "server" } }),
