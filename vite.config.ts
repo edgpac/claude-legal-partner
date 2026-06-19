@@ -6,9 +6,12 @@ import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
+  ssr: {
+    // Bundle these into dist/server/ so the Vercel function is self-contained.
+    noExternal: ["@anthropic-ai/sdk", "stripe", "@supabase/supabase-js", "zod"],
+  },
   plugins: [
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tanstackStart({ server: { entry: "server", preset: "vercel" } as any }),
+    tanstackStart({ server: { entry: "server" } }),
     react(),
     tailwindcss(),
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
