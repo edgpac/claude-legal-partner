@@ -7,7 +7,8 @@ import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [
-    tanstackStart({ server: { entry: "server" } }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tanstackStart({ server: { entry: "server", preset: "vercel" } as any }),
     react(),
     tailwindcss(),
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
