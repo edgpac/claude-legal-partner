@@ -66,21 +66,21 @@ function HomePage() {
             wordCount: extracted.wordCount,
           },
         });
+        if (result.upgradeRequired) {
+          setPricingReason(result.upgradeMessage);
+          setPricingOpen(true);
+          setState("idle");
+          setStep("");
+          return;
+        }
         setStep("Done.");
         await router.invalidate();
         navigate({ to: "/review/$id", params: { id: result.reviewId } });
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Something went wrong";
-        if (msg.startsWith("UPGRADE_REQUIRED:")) {
-          setPricingReason(msg.replace("UPGRADE_REQUIRED: ", ""));
-          setPricingOpen(true);
-          setState("idle");
-          setStep("");
-        } else {
-          toast.error(msg);
-          setState("error");
-          setStep("");
-        }
+        toast.error(msg);
+        setState("error");
+        setStep("");
       }
     },
     [create, navigate, router],

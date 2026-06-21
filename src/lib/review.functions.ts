@@ -67,51 +67,63 @@ type ReviewResult = {
   };
 };
 
+type CreateReviewResult =
+  | { reviewId: string; upgradeRequired?: never; upgradeMessage?: never }
+  | { reviewId: null; upgradeRequired: true; upgradeMessage: string };
+
 export const createReview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => {
-    try {
-      return CreateReviewInput.parse(input);
-    } catch (e) {
-      console.error("[createReview] inputValidator failed:", e instanceof Error ? e.message : String(e));
-      throw e;
-    }
-  })
-  .handler(async ({ data, context }) => {
-    console.log("[createReview] handler start", { pageCount: data.pageCount, wordCount: data.wordCount, filename: data.filename });
+  .inputValidator((input: unknown) => CreateReviewInput.parse(input))
+  .handler(async ({ data, context }): Promise<CreateReviewResult> => {
     const { supabase, userId } = context;
 
     // Section 5: Paywall enforcement — always read plan from DB, never trust client.
-    const { data: profile, error: profileErr } = await supabase
+    const { data: profile } = await supabase
       .from("profiles")
       .select("plan, review_credits, subscription_status")
       .eq("id", userId)
       .single();
 
-    if (profileErr) console.log("[createReview] profile query error (non-fatal):", profileErr.message);
-    console.log("[createReview] profile:", { plan: profile?.plan, userId });
-
     const plan = (profile?.plan ?? "free") as "free" | "starter" | "pro";
     const credits = profile?.review_credits ?? 0;
     const subStatus = profile?.subscription_status;
 
+    // Return typed paywall response instead of throwing — throws get mangled in transit.
     if (plan === "free") {
+      if (data.wordCount > 2000 || data.pageCount > 5) {
+        return {
+          reviewId: null,
+          upgradeRequired: true,
+          upgradeMessage: "Free review is limited to 5 pages / 2,000 words. Upgrade to review longer documents.",
+        };
+      }
       const { count: total } = await supabase
         .from("reviews")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId);
       if ((total ?? 0) >= 1) {
-        throw new Error("UPGRADE_REQUIRED: You've used your free review. Upgrade to continue.");
+        return {
+          reviewId: null,
+          upgradeRequired: true,
+          upgradeMessage: "You've used your free review. Upgrade to continue.",
+        };
       }
     } else if (plan === "starter") {
       if (credits <= 0) {
-        throw new Error("UPGRADE_REQUIRED: No reviews remaining. Buy more or upgrade to Pro.");
+        return {
+          reviewId: null,
+          upgradeRequired: true,
+          upgradeMessage: "No reviews remaining. Buy more or upgrade to Pro.",
+        };
       }
     } else if (plan === "pro") {
       if (subStatus === "canceled") {
-        throw new Error("UPGRADE_REQUIRED: Your Pro subscription has ended. Please resubscribe.");
+        return {
+          reviewId: null,
+          upgradeRequired: true,
+          upgradeMessage: "Your Pro subscription has ended. Please resubscribe.",
+        };
       }
-      // past_due: allow, 3-day grace period before blocking
       // Anti-abuse rate limit for Pro: 20 reviews/hour
       const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const { count: hourly } = await supabase
@@ -122,14 +134,6 @@ export const createReview = createServerFn({ method: "POST" })
       if ((hourly ?? 0) >= 20) {
         throw new Error("Rate limit: maximum 20 reviews per hour. Please try again later.");
       }
-    }
-
-    // Cap free reviews at 5 pages / 2,000 words — limits API cost and reduces
-    // incentive to farm free reviews with fake emails.
-    if (plan === "free" && (data.wordCount > 2000 || data.pageCount > 5)) {
-      throw new Error(
-        "UPGRADE_REQUIRED: Free review is limited to 5 pages / 2,000 words. Upgrade to review longer documents.",
-      );
     }
 
     // 1. Insert document
@@ -158,7 +162,7 @@ export const createReview = createServerFn({ method: "POST" })
       .single();
     if (revErr || !review) throw new Error(revErr?.message ?? "Failed to create review");
 
-    // 3. Call Anthropic (do this synchronously so the redirect lands on a ready page)
+    // 3. Call Anthropic synchronously so the redirect lands on a ready page
     try {
       const apiKey = process.env.ANTHROPIC_API_KEY;
       if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
