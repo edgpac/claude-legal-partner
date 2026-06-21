@@ -69,16 +69,27 @@ type ReviewResult = {
 
 export const createReview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => CreateReviewInput.parse(input))
+  .inputValidator((input: unknown) => {
+    try {
+      return CreateReviewInput.parse(input);
+    } catch (e) {
+      console.error("[createReview] inputValidator failed:", e instanceof Error ? e.message : String(e));
+      throw e;
+    }
+  })
   .handler(async ({ data, context }) => {
+    console.log("[createReview] handler start", { pageCount: data.pageCount, wordCount: data.wordCount, filename: data.filename });
     const { supabase, userId } = context;
 
     // Section 5: Paywall enforcement — always read plan from DB, never trust client.
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from("profiles")
       .select("plan, review_credits, subscription_status")
       .eq("id", userId)
       .single();
+
+    if (profileErr) console.log("[createReview] profile query error (non-fatal):", profileErr.message);
+    console.log("[createReview] profile:", { plan: profile?.plan, userId });
 
     const plan = (profile?.plan ?? "free") as "free" | "starter" | "pro";
     const credits = profile?.review_credits ?? 0;
