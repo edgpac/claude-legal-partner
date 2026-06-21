@@ -13,8 +13,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
-import { Route as AuthenticatedReviewIdRouteImport } from './routes/_authenticated/review.$id'
 import { Route as AuthenticatedSettingsBillingRouteImport } from './routes/_authenticated/settings/billing'
+import { Route as AuthenticatedReviewIdRouteImport } from './routes/_authenticated/review.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -35,14 +35,15 @@ const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSettingsBillingRoute =
+  AuthenticatedSettingsBillingRouteImport.update({
+    id: '/settings/billing',
+    path: '/settings/billing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedReviewIdRoute = AuthenticatedReviewIdRouteImport.update({
   id: '/review/$id',
   path: '/review/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedSettingsBillingRoute = AuthenticatedSettingsBillingRouteImport.update({
-  id: '/settings/billing',
-  path: '/settings/billing',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
@@ -119,18 +120,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHistoryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/review/$id': {
-      id: '/_authenticated/review/$id'
-      path: '/review/$id'
-      fullPath: '/review/$id'
-      preLoaderRoute: typeof AuthenticatedReviewIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/settings/billing': {
       id: '/_authenticated/settings/billing'
       path: '/settings/billing'
       fullPath: '/settings/billing'
       preLoaderRoute: typeof AuthenticatedSettingsBillingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/review/$id': {
+      id: '/_authenticated/review/$id'
+      path: '/review/$id'
+      fullPath: '/review/$id'
+      preLoaderRoute: typeof AuthenticatedReviewIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
   }
@@ -160,3 +161,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
