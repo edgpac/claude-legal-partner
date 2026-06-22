@@ -54,11 +54,13 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       const stripe = getStripe();
       const customerId = await getOrCreateCustomer(supabase, userId, stripe);
 
-      const starterPriceId = process.env.STRIPE_STARTER_PRICE_ID;
+      // Retrieve the price object so we can set the correct mode regardless of
+      // whether the price is one_time (payment) or recurring (subscription).
+      const price = await stripe.prices.retrieve(data.priceId);
       const mode: Stripe.Checkout.SessionCreateParams.Mode =
-        data.priceId === starterPriceId ? "payment" : "subscription";
+        price.type === "one_time" ? "payment" : "subscription";
 
-      console.log("[checkout] userId:", userId, "priceId:", data.priceId, "mode:", mode);
+      console.log("[checkout] userId:", userId, "priceId:", data.priceId, "mode:", mode, "priceType:", price.type);
 
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
