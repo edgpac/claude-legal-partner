@@ -1,6 +1,7 @@
 import { createMiddleware } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { createClient } from '@supabase/supabase-js'
+import WebSocketImpl from 'ws'
 import type { Database } from './types'
 
 
@@ -42,9 +43,6 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       throw new Error('Unauthorized: No token provided');
     }
 
-    // Dynamic import of 'ws' avoids the "Node.js 20 detected without native WebSocket" warning
-    // that @supabase/realtime-js emits when it finds no global WebSocket in Node.js < 22.
-    const { default: WS } = await import('ws');
     const supabase = createClient<Database>(
       SUPABASE_URL!,
       SUPABASE_PUBLISHABLE_KEY!,
@@ -60,7 +58,7 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
           autoRefreshToken: false,
         },
         realtime: {
-          transport: WS as unknown as typeof WebSocket,
+          transport: WebSocketImpl as unknown as typeof WebSocket,
         },
       }
     );

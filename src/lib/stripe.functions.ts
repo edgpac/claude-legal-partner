@@ -50,25 +50,32 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const stripe = getStripe();
+    try {
+      const stripe = getStripe();
+      const customerId = await getOrCreateCustomer(supabase, userId, stripe);
 
-    const customerId = await getOrCreateCustomer(supabase, userId, stripe);
+      const starterPriceId = process.env.STRIPE_STARTER_PRICE_ID;
+      const mode: Stripe.Checkout.SessionCreateParams.Mode =
+        data.priceId === starterPriceId ? "payment" : "subscription";
 
-    const starterPriceId = process.env.STRIPE_STARTER_PRICE_ID;
-    const mode: Stripe.Checkout.SessionCreateParams.Mode =
-      data.priceId === starterPriceId ? "payment" : "subscription";
+      console.log("[checkout] userId:", userId, "priceId:", data.priceId, "mode:", mode);
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ["card"],
-      line_items: [{ price: data.priceId, quantity: 1 }],
-      mode,
-      success_url: `${data.successUrl}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: data.cancelUrl,
-      metadata: { supabase_uid: userId },
-    });
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ["card"],
+        line_items: [{ price: data.priceId, quantity: 1 }],
+        mode,
+        success_url: `${data.successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: data.cancelUrl,
+        metadata: { supabase_uid: userId },
+      });
 
-    return { url: session.url };
+      console.log("[checkout] session created:", session.id);
+      return { url: session.url };
+    } catch (e) {
+      console.error("[checkout] error:", e instanceof Error ? e.message : String(e));
+      throw e;
+    }
   });
 
 export const createPortalSession = createServerFn({ method: "POST" })
