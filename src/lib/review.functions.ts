@@ -73,7 +73,7 @@ type CreateReviewResult =
 
 export const createReview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => CreateReviewInput.parse(input))
+  .validator((input: unknown) => CreateReviewInput.parse(input))
   .handler(async ({ data, context }): Promise<CreateReviewResult> => {
     const { supabase, userId } = context;
 
@@ -88,9 +88,12 @@ export const createReview = createServerFn({ method: "POST" })
     const credits = profile?.review_credits ?? 0;
     const subStatus = profile?.subscription_status;
 
+    console.log("[createReview] userId:", userId, "plan:", plan, "pageCount:", data.pageCount, "wordCount:", data.wordCount);
+
     // Return typed paywall response instead of throwing — throws get mangled in transit.
     if (plan === "free") {
       if (data.wordCount > 2000 || data.pageCount > 5) {
+        console.log("[createReview] returning paywall: page/word limit exceeded");
         return {
           reviewId: null,
           upgradeRequired: true,
@@ -102,6 +105,7 @@ export const createReview = createServerFn({ method: "POST" })
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId);
       if ((total ?? 0) >= 1) {
+        console.log("[createReview] returning paywall: free review used");
         return {
           reviewId: null,
           upgradeRequired: true,
@@ -229,7 +233,7 @@ function extractJson(s: string): string {
 
 export const getReview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: review, error } = await context.supabase
       .from("reviews")

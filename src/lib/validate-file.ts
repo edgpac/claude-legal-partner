@@ -1,6 +1,6 @@
 // Section 1: File upload security — magic byte validation + size enforcement.
 
-const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
 
 const MAGIC_BYTES: Record<string, number[][]> = {
   ".pdf": [[0x25, 0x50, 0x44, 0x46]], // %PDF
@@ -12,7 +12,7 @@ const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".txt"] as const;
 export async function validateFile(file: File): Promise<void> {
   if (file.size === 0) throw new Error("File is empty.");
   if (file.size > MAX_BYTES) {
-    throw new Error(`File too large. Maximum is ${MAX_BYTES / 1_048_576} MB.`);
+    throw new Error(`File too large. Maximum is 25 MB.`);
   }
 
   const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
