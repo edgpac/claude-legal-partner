@@ -73,7 +73,7 @@ type CreateReviewResult =
 
 export const createReview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => CreateReviewInput.parse(input))
+  .inputValidator((input: unknown) => CreateReviewInput.parse(input))
   .handler(async ({ data, context }): Promise<CreateReviewResult> => {
     const { supabase, userId } = context;
 
@@ -233,7 +233,7 @@ function extractJson(s: string): string {
 
 export const getReview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { data: review, error } = await context.supabase
       .from("reviews")
