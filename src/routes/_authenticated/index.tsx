@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -31,6 +31,15 @@ function HomePage() {
   const [step, setStep] = useState<string>("");
   const [pricingOpen, setPricingOpen] = useState(false);
   const [pricingReason, setPricingReason] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upgraded") === "1") {
+      toast.success("Plan upgraded — you're ready to review more contracts.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const recent = useQuery({
     queryKey: ["recent-reviews"],

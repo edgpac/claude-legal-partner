@@ -33,7 +33,7 @@ export function PricingModal({ open, onOpenChange, reason }: PricingModalProps) 
       const result = await checkout({
         data: {
           priceId,
-          successUrl: `${window.location.origin}/settings/billing?success=1`,
+          successUrl: `${window.location.origin}/?upgraded=1`,
           cancelUrl: window.location.href,
         },
       });
