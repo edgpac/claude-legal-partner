@@ -67,7 +67,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
         payment_method_types: ["card"],
         line_items: [{ price: data.priceId, quantity: 1 }],
         mode,
-        success_url: `${data.successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: data.successUrl,
         cancel_url: data.cancelUrl,
         metadata: { supabase_uid: userId },
       });
