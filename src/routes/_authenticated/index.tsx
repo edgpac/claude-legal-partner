@@ -31,6 +31,7 @@ function HomePage() {
   const [step, setStep] = useState<string>("");
   const [pricingOpen, setPricingOpen] = useState(false);
   const [pricingReason, setPricingReason] = useState<string | undefined>();
+  const [upgradeToPlan, setUpgradeToPlan] = useState<"pro" | "business" | undefined>();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -77,6 +78,7 @@ function HomePage() {
         });
         if (result.upgradeRequired) {
           setPricingReason(result.upgradeMessage);
+          setUpgradeToPlan(result.upgradeToPlan);
           setPricingOpen(true);
           setState("idle");
           setStep("");
@@ -105,7 +107,7 @@ function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-      <PricingModal open={pricingOpen} onOpenChange={setPricingOpen} reason={pricingReason} />
+      <PricingModal open={pricingOpen} onOpenChange={setPricingOpen} reason={pricingReason} upgradeToPlan={upgradeToPlan} />
 
       <main className="mx-auto max-w-5xl px-6 py-12">
         <div className="text-center max-w-2xl mx-auto">

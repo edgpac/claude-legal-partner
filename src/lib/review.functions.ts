@@ -68,8 +68,8 @@ type ReviewResult = {
 };
 
 type CreateReviewResult =
-  | { reviewId: string; upgradeRequired?: never; upgradeMessage?: never }
-  | { reviewId: null; upgradeRequired: true; upgradeMessage: string };
+  | { reviewId: string; upgradeRequired?: never; upgradeMessage?: never; upgradeToPlan?: never }
+  | { reviewId: null; upgradeRequired: true; upgradeMessage: string; upgradeToPlan?: "pro" | "business" };
 
 export const createReview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -84,7 +84,7 @@ export const createReview = createServerFn({ method: "POST" })
       .eq("id", userId)
       .single();
 
-    const plan = (profile?.plan ?? "free") as "free" | "starter" | "pro";
+    const plan = (profile?.plan ?? "free") as "free" | "starter" | "pro" | "business";
     const subStatus = profile?.subscription_status;
     const totalCreated = profile?.total_reviews_created ?? 0;
 
@@ -102,12 +102,11 @@ export const createReview = createServerFn({ method: "POST" })
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .gte("created_at", since1h);
-    const hourlyLimit = plan === "pro" ? 10 : plan === "starter" ? 5 : 2;
+    const hourlyLimit = plan === "pro" || plan === "business" ? 10 : plan === "starter" ? 5 : 2;
     if ((hourly ?? 0) >= hourlyLimit) {
       throw new Error("Hourly limit reached. Please wait before submitting more reviews.");
     }
 
-    // Monthly cap: Pro break-even is ~165 reviews. Cap at 150 to stay profitable.
     if (plan === "pro") {
       const { count: monthly } = await supabase
         .from("reviews")
@@ -115,7 +114,22 @@ export const createReview = createServerFn({ method: "POST" })
         .eq("user_id", userId)
         .gte("created_at", since30d);
       if ((monthly ?? 0) >= 75) {
-        throw new Error("Monthly review limit reached (75). Resets on your next billing cycle.");
+        return {
+          reviewId: null,
+          upgradeRequired: true,
+          upgradeMessage: "You've used all 75 of your monthly Pro reviews. Upgrade to Business for 150 reviews/month.",
+          upgradeToPlan: "business" as const,
+        };
+      }
+    }
+    if (plan === "business") {
+      const { count: monthly } = await supabase
+        .from("reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("created_at", since30d);
+      if ((monthly ?? 0) >= 150) {
+        throw new Error("Monthly review limit reached (150). Resets on your next billing cycle.");
       }
     }
 
@@ -150,12 +164,12 @@ export const createReview = createServerFn({ method: "POST" })
           upgradeMessage: "No reviews remaining. Buy more or upgrade to Pro.",
         };
       }
-    } else if (plan === "pro") {
+    } else if (plan === "pro" || plan === "business") {
       if (subStatus === "canceled") {
         return {
           reviewId: null,
           upgradeRequired: true,
-          upgradeMessage: "Your Pro subscription has ended. Please resubscribe.",
+          upgradeMessage: "Your subscription has ended. Please resubscribe.",
         };
       }
     }

@@ -85,7 +85,8 @@ async function handleStripeEvent(event: Stripe.Event, stripe: Stripe, supabase: 
         const sub = await stripe.subscriptions.retrieve(session.subscription as string)
         const priceId = sub.items.data[0]?.price.id
         const starterPriceId = process.env.STRIPE_STARTER_PRICE_ID
-        const plan = priceId === starterPriceId ? 'starter' : 'pro'
+        const businessPriceId = process.env.STRIPE_BUSINESS_PRICE_ID
+        const plan = priceId === starterPriceId ? 'starter' : priceId === businessPriceId ? 'business' : 'pro'
 
         const update: Record<string, unknown> = {
           plan,

@@ -2,28 +2,33 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, Zap, Crown } from "lucide-react";
+import { Check, Loader2, Zap, Crown, Building2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { createCheckoutSession } from "@/lib/stripe.functions";
 import { toast } from "sonner";
 
 const STARTER_PRICE_ID = import.meta.env.VITE_STRIPE_STARTER_PRICE_ID as string;
 const PRO_PRICE_ID = import.meta.env.VITE_STRIPE_PRO_PRICE_ID as string;
+const BUSINESS_PRICE_ID = import.meta.env.VITE_STRIPE_BUSINESS_PRICE_ID as string;
 
-type Plan = "starter" | "pro";
+type Plan = "starter" | "pro" | "business";
 
 interface PricingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   reason?: string;
+  upgradeToPlan?: "pro" | "business";
 }
 
-export function PricingModal({ open, onOpenChange, reason }: PricingModalProps) {
+export function PricingModal({ open, onOpenChange, reason, upgradeToPlan }: PricingModalProps) {
   const [loading, setLoading] = useState<Plan | null>(null);
   const checkout = useServerFn(createCheckoutSession);
 
   async function handleSelect(plan: Plan) {
-    const priceId = plan === "starter" ? STARTER_PRICE_ID : PRO_PRICE_ID;
+    const priceId =
+      plan === "starter" ? STARTER_PRICE_ID :
+      plan === "business" ? BUSINESS_PRICE_ID :
+      PRO_PRICE_ID;
     if (!priceId) {
       toast.error("Billing is not configured yet.");
       return;
@@ -46,11 +51,15 @@ export function PricingModal({ open, onOpenChange, reason }: PricingModalProps) 
     }
   }
 
+  const showBusinessUpgrade = upgradeToPlan === "business";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className={showBusinessUpgrade ? "sm:max-w-md" : "sm:max-w-2xl"}>
         <DialogHeader>
-          <DialogTitle className="text-xl">Upgrade to keep reviewing</DialogTitle>
+          <DialogTitle className="text-xl">
+            {showBusinessUpgrade ? "Upgrade to Business" : "Upgrade to keep reviewing"}
+          </DialogTitle>
           {reason && (
             <DialogDescription className="text-sm text-muted-foreground">
               {reason}
@@ -58,31 +67,48 @@ export function PricingModal({ open, onOpenChange, reason }: PricingModalProps) 
           )}
         </DialogHeader>
 
-        <div className="mt-4 grid sm:grid-cols-2 gap-4">
-          <PlanCard
-            name="Starter"
-            price="$4.99"
-            period="one-time"
-            description="A pack of 20 contract reviews. No expiry."
-            features={["20 reviews", "Full clause analysis", "Plain-English briefing", "Risk scoring"]}
-            icon={<Zap className="h-5 w-5" />}
-            cta="Buy Starter Pack"
-            loading={loading === "starter"}
-            onSelect={() => handleSelect("starter")}
-          />
-          <PlanCard
-            name="Pro"
-            price="$14.99"
-            period="/month"
-            description="Unlimited reviews for active teams."
-            features={["Unlimited reviews", "Full clause analysis", "Plain-English briefing", "Risk scoring", "Priority support"]}
-            icon={<Crown className="h-5 w-5" />}
-            cta="Start Pro"
-            highlight
-            loading={loading === "pro"}
-            onSelect={() => handleSelect("pro")}
-          />
-        </div>
+        {showBusinessUpgrade ? (
+          <div className="mt-4">
+            <PlanCard
+              name="Business"
+              price="$29.99"
+              period="/month"
+              description="Built for teams that review contracts at volume."
+              features={["150 reviews/month", "Full clause analysis", "Plain-English briefing", "Risk scoring", "Priority support"]}
+              icon={<Building2 className="h-5 w-5" />}
+              cta="Upgrade to Business"
+              highlight
+              loading={loading === "business"}
+              onSelect={() => handleSelect("business")}
+            />
+          </div>
+        ) : (
+          <div className="mt-4 grid sm:grid-cols-2 gap-4">
+            <PlanCard
+              name="Starter"
+              price="$4.99"
+              period="one-time"
+              description="A pack of 20 contract reviews. No expiry."
+              features={["20 reviews", "Full clause analysis", "Plain-English briefing", "Risk scoring"]}
+              icon={<Zap className="h-5 w-5" />}
+              cta="Buy Starter Pack"
+              loading={loading === "starter"}
+              onSelect={() => handleSelect("starter")}
+            />
+            <PlanCard
+              name="Pro"
+              price="$14.99"
+              period="/month"
+              description="75 reviews/month for active reviewers."
+              features={["75 reviews/month", "Full clause analysis", "Plain-English briefing", "Risk scoring", "Priority support"]}
+              icon={<Crown className="h-5 w-5" />}
+              cta="Start Pro"
+              highlight
+              loading={loading === "pro"}
+              onSelect={() => handleSelect("pro")}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

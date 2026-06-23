@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /review/
+Disallow: /history
+Disallow: /settings/
+
+Sitemap: https://www.riskycontract.com/sitemap.xml

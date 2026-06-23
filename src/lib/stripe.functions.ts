@@ -53,7 +53,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
     try {
       // HIGH-1: Validate priceId against our own catalog — reject anything not in env.
       const allowedPriceIds = new Set(
-        [process.env.STRIPE_STARTER_PRICE_ID, process.env.STRIPE_PRO_PRICE_ID].filter(Boolean),
+        [process.env.STRIPE_STARTER_PRICE_ID, process.env.STRIPE_PRO_PRICE_ID, process.env.STRIPE_BUSINESS_PRICE_ID].filter(Boolean),
       );
       if (!allowedPriceIds.has(data.priceId)) {
         throw new Error("Invalid price selection.");
@@ -134,7 +134,7 @@ export const getUserProfile = createServerFn({ method: "GET" })
       .single();
     if (error) throw new Error(error.message);
     return {
-      plan: (data?.plan ?? "free") as "free" | "starter" | "pro",
+      plan: (data?.plan ?? "free") as "free" | "starter" | "pro" | "business",
       reviewCredits: data?.review_credits ?? 0,
       subscriptionStatus: data?.subscription_status ?? null,
       hasCustomer: !!data?.stripe_customer_id,
