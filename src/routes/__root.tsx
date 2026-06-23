@@ -91,7 +91,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Drop a contract. Get a clause-by-clause risk analysis, NDA triage, and plain-English briefing in under a minute. riskycontract.com",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:image", content: "https://www.riskycontract.com/og-image.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://www.riskycontract.com/og-image.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
