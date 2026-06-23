@@ -93,16 +93,30 @@ export const createReview = createServerFn({ method: "POST" })
 
     console.log("[createReview] userId:", userId, "plan:", plan, "serverWordCount:", serverWordCount, "clientPageCount:", data.pageCount);
 
-    // Rate limit all plans before any DB work (HIGH-2).
+    // Rate limit: hourly burst + monthly cap to keep Pro profitable.
     const since1h = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
     const { count: hourly } = await supabase
       .from("reviews")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .gte("created_at", since1h);
-    const hourlyLimit = plan === "pro" ? 20 : plan === "starter" ? 10 : 3;
+    const hourlyLimit = plan === "pro" ? 10 : plan === "starter" ? 5 : 2;
     if ((hourly ?? 0) >= hourlyLimit) {
-      throw new Error("Rate limit exceeded. Please try again later.");
+      throw new Error("Hourly limit reached. Please wait before submitting more reviews.");
+    }
+
+    // Monthly cap: Pro break-even is ~165 reviews. Cap at 150 to stay profitable.
+    if (plan === "pro") {
+      const { count: monthly } = await supabase
+        .from("reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("created_at", since30d);
+      if ((monthly ?? 0) >= 150) {
+        throw new Error("Monthly review limit reached (150). Resets on your next billing cycle.");
+      }
     }
 
     // Return typed paywall response instead of throwing — throws get mangled in transit.
