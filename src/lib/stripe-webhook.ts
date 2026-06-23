@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import WebSocketImpl from 'ws'
 
 const STARTER_CREDITS = 20
 
@@ -10,6 +11,7 @@ function getAdminSupabase() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    realtime: { transport: WebSocketImpl as unknown as typeof WebSocket },
   })
 }
 
