@@ -51,6 +51,23 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     try {
+      // HIGH-1: Validate priceId against our own catalog — reject anything not in env.
+      const allowedPriceIds = new Set(
+        [process.env.STRIPE_STARTER_PRICE_ID, process.env.STRIPE_PRO_PRICE_ID].filter(Boolean),
+      );
+      if (!allowedPriceIds.has(data.priceId)) {
+        throw new Error("Invalid price selection.");
+      }
+
+      // MED-2: Validate successUrl and cancelUrl belong to our own origin.
+      const APP_ORIGIN = (process.env.APP_ORIGIN ?? "https://www.riskycontract.com").replace(/\/$/, "");
+      for (const [field, url] of [["successUrl", data.successUrl], ["cancelUrl", data.cancelUrl]] as const) {
+        const parsed = new URL(url);
+        if (parsed.origin !== APP_ORIGIN) {
+          throw new Error(`${field} must be on ${APP_ORIGIN}`);
+        }
+      }
+
       const stripe = getStripe();
       const customerId = await getOrCreateCustomer(supabase, userId, stripe);
 

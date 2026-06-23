@@ -80,19 +80,35 @@ export const createReview = createServerFn({ method: "POST" })
     // Section 5: Paywall enforcement — always read plan from DB, never trust client.
     const { data: profile } = await supabase
       .from("profiles")
-      .select("plan, review_credits, subscription_status")
+      .select("plan, review_credits, subscription_status, total_reviews_created")
       .eq("id", userId)
       .single();
 
     const plan = (profile?.plan ?? "free") as "free" | "starter" | "pro";
-    const credits = profile?.review_credits ?? 0;
     const subStatus = profile?.subscription_status;
+    const totalCreated = profile?.total_reviews_created ?? 0;
 
-    console.log("[createReview] userId:", userId, "plan:", plan, "pageCount:", data.pageCount, "wordCount:", data.wordCount);
+    // CRIT-1: Compute word count server-side from actual text — never trust client-supplied counts.
+    const serverWordCount = data.text.trim().split(/\s+/).filter(Boolean).length;
+
+    console.log("[createReview] userId:", userId, "plan:", plan, "serverWordCount:", serverWordCount, "clientPageCount:", data.pageCount);
+
+    // Rate limit all plans before any DB work (HIGH-2).
+    const since1h = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: hourly } = await supabase
+      .from("reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", since1h);
+    const hourlyLimit = plan === "pro" ? 20 : plan === "starter" ? 10 : 3;
+    if ((hourly ?? 0) >= hourlyLimit) {
+      throw new Error("Rate limit exceeded. Please try again later.");
+    }
 
     // Return typed paywall response instead of throwing — throws get mangled in transit.
     if (plan === "free") {
-      if (data.wordCount > 2000 || data.pageCount > 5) {
+      // Gate on server-computed word count; page count display is client-only.
+      if (serverWordCount > 2000 || data.pageCount > 5) {
         console.log("[createReview] returning paywall: page/word limit exceeded");
         return {
           reviewId: null,
@@ -100,11 +116,8 @@ export const createReview = createServerFn({ method: "POST" })
           upgradeMessage: "Free review is limited to 5 pages / 2,000 words. Upgrade to review longer documents.",
         };
       }
-      const { count: total } = await supabase
-        .from("reviews")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId);
-      if ((total ?? 0) >= 1) {
+      // MED-3: Use total_reviews_created (never decrements) so deleting reviews can't reset the gate.
+      if (totalCreated >= 1) {
         console.log("[createReview] returning paywall: free review used");
         return {
           reviewId: null,
@@ -113,7 +126,10 @@ export const createReview = createServerFn({ method: "POST" })
         };
       }
     } else if (plan === "starter") {
-      if (credits <= 0) {
+      // CRIT-2: Atomically consume one credit before calling Claude.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: consumed } = await (supabase.rpc as any)("consume_review_credit", { p_user_id: userId });
+      if (!consumed) {
         return {
           reviewId: null,
           upgradeRequired: true,
@@ -127,16 +143,6 @@ export const createReview = createServerFn({ method: "POST" })
           upgradeRequired: true,
           upgradeMessage: "Your Pro subscription has ended. Please resubscribe.",
         };
-      }
-      // Anti-abuse rate limit for Pro: 20 reviews/hour
-      const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { count: hourly } = await supabase
-        .from("reviews")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("created_at", since);
-      if ((hourly ?? 0) >= 20) {
-        throw new Error("Rate limit: maximum 20 reviews per hour. Please try again later.");
       }
     }
 
@@ -175,6 +181,9 @@ export const createReview = createServerFn({ method: "POST" })
       const client = new Anthropic({ apiKey });
       const truncated = data.text.length > 180_000 ? data.text.slice(0, 180_000) : data.text;
 
+      // MED-6: Sanitize filename before interpolating into the prompt (outside <document> tags).
+      const safeFilename = data.filename.replace(/[^\w\s.\-()[\]]/g, "_").slice(0, 100);
+
       const message = await client.messages.create({
         model: "claude-sonnet-4-5",
         max_tokens: 4096,
@@ -182,7 +191,7 @@ export const createReview = createServerFn({ method: "POST" })
         messages: [
           {
             role: "user",
-            content: `${REVIEW_INSTRUCTIONS}\n\nFilename: ${data.filename}\n\n<document>\n${truncated}\n</document>`,
+            content: `${REVIEW_INSTRUCTIONS}\n\nFilename: ${safeFilename}\n\n<document>\n${truncated}\n</document>`,
           },
         ],
       });
@@ -200,14 +209,6 @@ export const createReview = createServerFn({ method: "POST" })
           result_json: parsed,
         })
         .eq("id", review.id);
-
-      // Decrement Starter credits after a successful review.
-      if (plan === "starter" && credits > 0) {
-        await supabase
-          .from("profiles")
-          .update({ review_credits: credits - 1 })
-          .eq("id", userId);
-      }
 
       return { reviewId: review.id };
     } catch (e) {
