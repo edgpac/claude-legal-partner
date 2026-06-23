@@ -114,8 +114,8 @@ export const createReview = createServerFn({ method: "POST" })
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .gte("created_at", since30d);
-      if ((monthly ?? 0) >= 150) {
-        throw new Error("Monthly review limit reached (150). Resets on your next billing cycle.");
+      if ((monthly ?? 0) >= 75) {
+        throw new Error("Monthly review limit reached (75). Resets on your next billing cycle.");
       }
     }
 
