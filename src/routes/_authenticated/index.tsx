@@ -284,6 +284,7 @@ function DropZone({
               or <span className="text-primary font-medium">click to browse</span>
             </p>
             <p className="mt-6 text-xs text-muted-foreground">PDF, DOCX, or TXT · up to 25 MB</p>
+            <p className="mt-1 text-[10px] text-muted-foreground/60">Up to 60 pages · more than any real contract needs</p>
           </motion.div>
         )}
       </AnimatePresence>

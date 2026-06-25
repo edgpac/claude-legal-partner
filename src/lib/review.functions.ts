@@ -207,7 +207,7 @@ export const createReview = createServerFn({ method: "POST" })
 
       const { default: Anthropic } = await import("@anthropic-ai/sdk");
       const client = new Anthropic({ apiKey });
-      const truncated = data.text.length > 180_000 ? data.text.slice(0, 180_000) : data.text;
+      const truncated = data.text.length > 90_000 ? data.text.slice(0, 90_000) : data.text;
 
       // MED-6: Sanitize filename before interpolating into the prompt (outside <document> tags).
       const safeFilename = data.filename.replace(/[^\w\s.\-()[\]]/g, "_").slice(0, 100);
